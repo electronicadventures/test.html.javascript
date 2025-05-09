@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ohm's Law Quiz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .description {
+      margin-bottom: 20px;
+    }
+    .draggable {
+      display: inline-block;
+      padding: 8px 12px;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      cursor: move;
+      margin: 5px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 10px;
+      text-align: center;
+      height: 50px;
+    }
+    .correct {
+      background-color: #c8f7c5;
+    }
+    .incorrect {
+      background-color: #f7c5c5;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ohm's Law</h1>
+  <div class="description">
+    <p><strong>Ohm's Law</strong> states that the current (I) flowing through a conductor between two points is directly proportional to the voltage (V) across the two points, and inversely proportional to the resistance (R). The formula is:</p>
+    <p><strong>V = I × R</strong></p>
+  </div>
+
+  <h2>Drag the correct answers into the table:</h2>
+  <div id="answers">
+    <div class="draggable" draggable="true" data-answer="5A">5A</div>
+    <div class="draggable" draggable="true" data-answer="10V">10V</div>
+    <div class="draggable" draggable="true" data-answer="2Ω">2Ω</div>
+    <div class="draggable" draggable="true" data-answer="20V">20V</div>
+  </div>
+
+  <table>
+    <tr><th>Question</th><th>Your Answer</th></tr>
+    <tr>
+      <td>1. What is the voltage if I = 2A and R = 5Ω?</td>
+      <td ondrop="drop(event)" ondragover="allowDrop(event)" data-correct="10V"></td>
+    </tr>
+    <tr>
+      <td>2. What is the current if V = 10V and R = 2Ω?</td>
+      <td ondrop="drop(event)" ondragover="allowDrop(event)" data-correct="5A"></td>
+    </tr>
+    <tr>
+      <td>3. What is the resistance if V = 10V and I = 5A?</td>
+      <td ondrop="drop(event)" ondragover="allowDrop(event)" data-correct="2Ω"></td>
+    </tr>
+    <tr>
+      <td>4. What is the voltage if I = 4A and R = 5Ω?</td>
+      <td ondrop="drop(event)" ondragover="allowDrop(event)" data-correct="20V"></td>
+    </tr>
+    <tr>
+      <td>5. What is the current if V = 20V and R = 4Ω?</td>
+      <td ondrop="drop(event)" ondragover="allowDrop(event)" data-correct="5A"></td>
+    </tr>
+  </table>
+
+  <script>
+    const draggables = document.querySelectorAll('.draggable');
+
+    draggables.forEach(el => {
+      el.addEventListener('dragstart', e => {
+        e.dataTransfer.setData("text", e.target.getAttribute('data-answer'));
+      });
+    });
+
+    function allowDrop(e) {
+      e.preventDefault();
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      const answer = e.dataTransfer.getData("text");
+      e.target.textContent = answer;
+
+      const correctAnswer = e.target.getAttribute('data-correct');
+      if (answer === correctAnswer) {
+        e.target.classList.remove('incorrect');
+        e.target.classList.add('correct');
+      } else {
+        e.target.classList.remove('correct');
+        e.target.classList.add('incorrect');
+      }
+    }
+  </script>
+</body>
+</html>
