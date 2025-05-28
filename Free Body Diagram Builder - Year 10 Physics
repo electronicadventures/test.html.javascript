@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Body Diagram Builder | Year 10 Physics</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px 0;
+      background-color: white;
+    }
+    .force-option {
+      padding: 8px;
+      margin: 5px;
+      background: #e0e0e0;
+      cursor: grab;
+      display: inline-block;
+    }
+    .force-option:active {
+      cursor: grabbing;
+    }
+    #netForce {
+      font-weight: bold;
+      color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Free Body Diagram Builder</h1>
+    <p>Drag forces onto the object. Observe net force and acceleration.</p>
+    
+    <div>
+      <div class="force-option" draggable="true" data-force="gravity">Gravity (↓)</div>
+      <div class="force-option" draggable="true" data-force="normal">Normal Force (↑)</div>
+      <div class="force-option" draggable="true" data-force="friction">Friction (←)</div>
+      <div class="force-option" draggable="true" data-force="applied">Applied Force (→)</div>
+    </div>
+
+    <canvas id="fbdCanvas" width="700" height="400"></canvas>
+    <p>Net Force: <span id="netForce">0 N</span></p>
+    <p>Acceleration: <span id="acceleration">0 m/s²</span></p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('fbdCanvas');
+    const ctx = canvas.getContext('2d');
+    const netForceDisplay = document.getElementById('netForce');
+    const accelerationDisplay = document.getElementById('acceleration');
+    const forceOptions = document.querySelectorAll('.force-option');
+
+    let forces = [];
+    let draggedForce = null;
+
+    // Draw object (a box)
+    function drawObject() {
+      ctx.fillStyle = '#2196F3';
+      ctx.fillRect(300, 150, 100, 100);
+    }
+
+    // Draw forces as arrows
+    function drawForces() {
+      forces.forEach(force => {
+        ctx.strokeStyle = force.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(force.x, force.y);
+        ctx.lineTo(force.x + force.dx, force.y + force.dy);
+        ctx.stroke();
+        
+        // Arrowhead
+        ctx.fillStyle = force.color;
+        ctx.beginPath();
+        ctx.moveTo(force.x + force.dx, force.y + force.dy);
+        ctx.lineTo(force.x + force.dx - 10, force.y + force.dy - 5);
+        ctx.lineTo(force.x + force.dx - 10, force.y + force.dy + 5);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+
+    // Calculate net force and acceleration (F=ma)
+    function updatePhysics() {
+      let netX = 0, netY = 0;
+      forces.forEach(force => {
+        netX += force.fx;
+        netY += force.fy;
+      });
+
+      const mass = 1; // 1kg for simplicity
+      const ax = netX / mass;
+      const ay = netY / mass;
+
+      netForceDisplay.textContent = `${Math.sqrt(netX**2 + netY**2).toFixed(1)} N (${netX.toFixed(1)} N, ${netY.toFixed(1)} N)`;
+      accelerationDisplay.textContent = `${Math.sqrt(ax**2 + ay**2).toFixed(1)} m/s²`;
+    }
+
+    // Drag-and-drop logic
+    forceOptions.forEach(option => {
+      option.addEventListener('dragstart', (e) => {
+        draggedForce = e.target.dataset.force;
+        e.dataTransfer.setData('text/plain', draggedForce);
+      });
+    });
+
+    canvas.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const type = e.dataTransfer.getData('text/plain');
+      const x = e.clientX - canvas.getBoundingClientRect().left;
+      const y = e.clientY - canvas.getBoundingClientRect().top;
+
+      let fx, fy, dx, dy, color;
+      switch (type) {
+        case 'gravity':
+          fx = 0; fy = 5; dx = 0; dy = 50; color = '#000000';
+          break;
+        case 'normal':
+          fx = 0; fy = -5; dx = 0; dy = -50; color = '#4CAF50';
+          break;
+        case 'friction':
+          fx = -2; fy = 0; dx = -50; dy = 0; color = '#FF9800';
+          break;
+        case 'applied':
+          fx = 3; fy = 0; dx = 50; dy = 0; color = '#2196F3';
+          break;
+      }
+
+      forces.push({ x, y, fx, fy, dx, dy, color });
+      redraw();
+    });
+
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawObject();
+      drawForces();
+      updatePhysics();
+    }
+
+    // Initial draw
+    drawObject();
+  </script>
+</body>
+</html>
