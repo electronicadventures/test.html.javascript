@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticker Timer Simulator | Year 10 Physics</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px 0;
+      background-color: white;
+    }
+    .controls {
+      margin: 10px 0;
+    }
+    button {
+      padding: 8px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #cccccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ticker Timer Simulator</h1>
+    <p>Adjust the frequency (Hz) to simulate a ticker timer. Drag the ruler to measure distances.</p>
+    
+    <div class="controls">
+      <label for="frequency">Frequency (Hz):</label>
+      <input type="range" id="frequency" min="1" max="50" value="10">
+      <span id="freqValue">10 Hz</span>
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <canvas id="tickerCanvas" width="700" height="100"></canvas>
+    <p>Distance between dots: <span id="distance">0</span> mm (<span id="distanceM">0</span> m)</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('tickerCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const frequencySlider = document.getElementById('frequency');
+    const freqValue = document.getElementById('freqValue');
+    const distanceDisplay = document.getElementById('distance');
+    const distanceMDisplay = document.getElementById('distanceM');
+
+    let animationId;
+    let dots = [];
+    let isRunning = false;
+    let lastTime = 0;
+
+    // Update frequency display
+    frequencySlider.addEventListener('input', () => {
+      freqValue.textContent = `${frequencySlider.value} Hz`;
+    });
+
+    // Start/stop/reset
+    startBtn.addEventListener('click', startTimer);
+    stopBtn.addEventListener('click', stopTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    function startTimer() {
+      if (isRunning) return;
+      isRunning = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      lastTime = Date.now();
+      animate();
+    }
+
+    function stopTimer() {
+      isRunning = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      cancelAnimationFrame(animationId);
+    }
+
+    function resetTimer() {
+      stopTimer();
+      dots = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      distanceDisplay.textContent = "0";
+      distanceMDisplay.textContent = "0";
+    }
+
+    function animate() {
+      if (!isRunning) return;
+      const now = Date.now();
+      const deltaTime = now - lastTime;
+      const interval = 1000 / frequencySlider.value; // ms per dot
+
+      if (deltaTime >= interval) {
+        lastTime = now;
+        addDot();
+      }
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function addDot() {
+      const x = dots.length * 20 + 10; // Spacing between dots
+      if (x >= canvas.width - 10) {
+        stopTimer();
+        return;
+      }
+      dots.push(x);
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(x, 50, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Update distance between last two dots
+      if (dots.length >= 2) {
+        const dist = 20; // 20px = 10mm (for demo)
+        distanceDisplay.textContent = dist;
+        distanceMDisplay.textContent = (dist / 1000).toFixed(3);
+      }
+    }
+  </script>
+</body>
+</html>
