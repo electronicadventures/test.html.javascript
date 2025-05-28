@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticker Tape Velocity Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            background-color: white;
+        }
+        button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input {
+            padding: 5px;
+            margin: 5px 0;
+        }
+        .result {
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ticker Tape Velocity Calculator</h1>
+    
+    <div class="container">
+        <h2>Simulator</h2>
+        <div>
+            <label for="frequency">Frequency (Hz):</label>
+            <input type="number" id="frequency" min="1" max="50" value="10">
+            
+            <label for="velocity">Velocity (cm/s):</label>
+            <input type="number" id="velocity" min="1" max="20" value="5">
+            
+            <button id="generateBtn">Generate Tape</button>
+        </div>
+        
+        <canvas id="tapeCanvas" width="700" height="100"></canvas>
+    </div>
+    
+    <div class="container">
+        <h2>Velocity Calculator</h2>
+        <p>Select two dots to calculate velocity:</p>
+        
+        <div>
+            <label>Dot 1: <span id="dot1">Not selected</span></label><br>
+            <label>Dot 2: <span id="dot2">Not selected</span></label>
+        </div>
+        
+        <div class="result">
+            Distance: <span id="calcDistance">0</span> cm<br>
+            Time: <span id="calcTime">0</span> s<br>
+            Velocity: <span id="calcVelocity">0</span> cm/s
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tapeCanvas');
+        const ctx = canvas.getContext('2d');
+        const generateBtn = document.getElementById('generateBtn');
+        const frequencyInput = document.getElementById('frequency');
+        const velocityInput = document.getElementById('velocity');
+        const dot1Display = document.getElementById('dot1');
+        const dot2Display = document.getElementById('dot2');
+        const distanceDisplay = document.getElementById('calcDistance');
+        const timeDisplay = document.getElementById('calcTime');
+        const velocityDisplay = document.getElementById('calcVelocity');
+
+        let dots = [];
+        let selectedDots = [null, null];
+        
+        // Generate ticker tape
+        generateBtn.addEventListener('click', generateTape);
+        
+        function generateTape() {
+            const frequency = parseFloat(frequencyInput.value);
+            const velocity = parseFloat(velocityInput.value);
+            
+            // Clear existing dots
+            dots = [];
+            selectedDots = [null, null];
+            updateDotSelection();
+            clearResults();
+            
+            // Generate new dots
+            const dotSpacing = velocity / frequency;
+            for (let i = 0; i < 15; i++) {
+                dots.push({
+                    x: 50 + i * dotSpacing * 10, // Scale for visibility
+                    y: 50,
+                    time: i / frequency
+                });
+            }
+            
+            drawTape();
+        }
+        
+        function drawTape() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw tape background
+            ctx.fillStyle = '#f9f9f9';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw dots
+            ctx.fillStyle = 'black';
+            dots.forEach((dot, index) => {
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add dot labels
+                ctx.font = '10px Arial';
+                ctx.fillText(index + 1, dot.x - 3, dot.y - 8);
+            });
+            
+            // Add click handlers
+            canvas.onclick = handleDotClick;
+        }
+        
+        function handleDotClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Find clicked dot
+            for (let i = 0; i < dots.length; i++) {
+                const dot = dots[i];
+                const distance = Math.sqrt((x - dot.x) ** 2 + (y - dot.y) ** 2);
+                
+                if (distance < 10) { // Click radius
+                    if (!selectedDots[0]) {
+                        selectedDots[0] = i;
+                    } else if (!selectedDots[1] && i !== selectedDots[0]) {
+                        selectedDots[1] = i;
+                    } else {
+                        selectedDots = [i, null];
+                    }
+                    
+                    updateDotSelection();
+                    calculateVelocity();
+                    return;
+                }
+            }
+        }
+        
+        function updateDotSelection() {
+            dot1Display.textContent = selectedDots[0] !== null ? selectedDots[0] + 1 : "Not selected";
+            dot2Display.textContent = selectedDots[1] !== null ? selectedDots[1] + 1 : "Not selected";
+            
+            // Highlight selected dots
+            drawTape();
+            if (selectedDots[0] !== null) {
+                const dot = dots[selectedDots[0]];
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            if (selectedDots[1] !== null) {
+                const dot = dots[selectedDots[1]];
+                ctx.fillStyle = 'blue';
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function calculateVelocity() {
+            if (selectedDots[0] === null || selectedDots[1] === null) return;
+            
+            const dot1 = dots[selectedDots[0]];
+            const dot2 = dots[selectedDots[1]];
+            
+            const distance = (Math.abs(dot2.x - dot1.x) / 10).toFixed(2); // Scale back to cm
+            const time = (Math.abs(dot2.time - dot1.time)).toFixed(2);
+            const velocity = (distance / time).toFixed(2);
+            
+            distanceDisplay.textContent = distance;
+            timeDisplay.textContent = time;
+            velocityDisplay.textContent = velocity;
+        }
+        
+        function clearResults() {
+            distanceDisplay.textContent = "0";
+            timeDisplay.textContent = "0";
+            velocityDisplay.textContent = "0";
+            dot1Display.textContent = "Not selected";
+            dot2Display.textContent = "Not selected";
+        }
+        
+        // Initialize
+        generateTape();
+    </script>
+</body>
+</html>
