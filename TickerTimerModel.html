@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticker Tape Timer Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            background: white;
+        }
+        .controls {
+            margin: 15px 0;
+            padding: 15px;
+            background: #eef;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #aaa;
+        }
+        .attribution {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ticker Tape Timer Simulator</h1>
+    
+    <div class="container">
+        <canvas id="simCanvas" width="700" height="300"></canvas>
+        
+        <div class="controls">
+            <div>
+                <label for="frequency">Frequency: <span id="freqValue">10</span> Hz</label>
+                <input type="range" id="frequency" min="1" max="50" value="10" style="width: 200px;">
+            </div>
+            
+            <div>
+                <label for="velocity">Velocity: <span id="velValue">5</span> cm/s</label>
+                <input type="range" id="velocity" min="1" max="20" value="5" style="width: 200px;">
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <button id="startBtn">Start</button>
+                <button id="stopBtn" disabled>Stop</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+        </div>
+        
+        <div>
+            <h3>Measurements</h3>
+            <p>Time between dots: <span id="timeBetween">0.10</span> s</p>
+            <p>Actual distance between dots: <span id="actualDistance">0.50</span> cm</p>
+            <p>Measured distance: <span id="measuredDistance">0.00</span> cm</p>
+        </div>
+    </div>
+    
+    <div class="attribution">
+        <p><strong>Credits:</strong> This simulation is adapted from the original work by 
+        <a href="https://iwant2study.org/lookangejss/02_newtonianmechanics_2kinematics/ejss_model_tickerTapeTimer/index.html" target="_blank">
+        iWant2Study.org</a> under Creative Commons licensing.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const frequencySlider = document.getElementById('frequency');
+        const freqValue = document.getElementById('freqValue');
+        const velocitySlider = document.getElementById('velocity');
+        const velValue = document.getElementById('velValue');
+        const timeBetweenDisplay = document.getElementById('timeBetween');
+        const actualDistanceDisplay = document.getElementById('actualDistance');
+        const measuredDistanceDisplay = document.getElementById('measuredDistance');
+
+        // Simulation variables
+        let animationId;
+        let isRunning = false;
+        let lastTime = 0;
+        let dots = [];
+        let paperPosition = 0;
+        let selectedDots = [null, null];
+        let ruler = { x1: null, y1: null, x2: null, y2: null };
+
+        // Initialize
+        updateDisplays();
+        drawScene();
+
+        // Event listeners
+        frequencySlider.addEventListener('input', updateDisplays);
+        velocitySlider.addEventListener('input', updateDisplays);
+        startBtn.addEventListener('click', startSimulation);
+        stopBtn.addEventListener('click', stopSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        canvas.addEventListener('mousedown', startRuler);
+        canvas.addEventListener('mousemove', moveRuler);
+        canvas.addEventListener('mouseup', endRuler);
+
+        function updateDisplays() {
+            const freq = parseFloat(frequencySlider.value);
+            const vel = parseFloat(velocitySlider.value);
+            
+            freqValue.textContent = freq;
+            velValue.textContent = vel;
+            timeBetweenDisplay.textContent = (1/freq).toFixed(2);
+            actualDistanceDisplay.textContent = (vel/freq).toFixed(2);
+        }
+
+        function startSimulation() {
+            if (isRunning) return;
+            isRunning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            lastTime = Date.now();
+            animate();
+        }
+
+        function stopSimulation() {
+            isRunning = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            cancelAnimationFrame(animationId);
+        }
+
+        function resetSimulation() {
+            stopSimulation();
+            dots = [];
+            paperPosition = 0;
+            selectedDots = [null, null];
+            ruler = { x1: null, y1: null, x2: null, y2: null };
+            updateDisplays();
+            drawScene();
+        }
+
+        function animate() {
+            if (!isRunning) return;
+            
+            const now = Date.now();
+            const deltaTime = now - lastTime;
+            const interval = 1000 / parseFloat(frequencySlider.value);
+            
+            // Move paper
+            paperPosition += parseFloat(velocitySlider.value) * (deltaTime/1000);
+            if (paperPosition > 30) {
+                paperPosition = 0;
+                dots = dots.filter(dot => dot.x > -10);
+            }
+            
+            // Add new dot if time elapsed
+            if (deltaTime >= interval) {
+                lastTime = now;
+                addDot();
+            }
+            
+            drawScene();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function addDot() {
+            const x = 50 + (paperPosition * 15); // Scale for visibility
+            const y = 150;
+            dots.push({x, y, time: Date.now()});
+        }
+
+        function drawScene() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw paper
+            ctx.fillStyle = '#f9f9f9';
+            ctx.fillRect(0, 100, canvas.width, 100);
+            
+            // Draw lines on paper
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            for (let y = 100; y <= 200; y += 10) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw dots
+            ctx.fillStyle = 'black';
+            dots.forEach(dot => {
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw ruler if measuring
+            if (ruler.x1 !== null && ruler.y1 !== null && ruler.x2 !== null && ruler.y2 !== null) {
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ruler.x1, ruler.y1);
+                ctx.lineTo(ruler.x2, ruler.y2);
+                ctx.stroke();
+                
+                // Calculate and display measured distance
+                const pixelDistance = Math.sqrt(Math.pow(ruler.x2 - ruler.x1, 2) + Math.pow(ruler.y2 - ruler.y1, 2));
+                const cmDistance = (pixelDistance / 15).toFixed(2); // 15 pixels = 1 cm in this simulation
+                measuredDistanceDisplay.textContent = cmDistance;
+            }
+        }
+
+        function startRuler(e) {
+            const rect = canvas.getBoundingClientRect();
+            ruler.x1 = e.clientX - rect.left;
+            ruler.y1 = e.clientY - rect.top;
+            ruler.x2 = ruler.x1;
+            ruler.y2 = ruler.y1;
+        }
+
+        function moveRuler(e) {
+            if (ruler.x1 === null) return;
+            const rect = canvas.getBoundingClientRect();
+            ruler.x2 = e.clientX - rect.left;
+            ruler.y2 = e.clientY - rect.top;
+            drawScene();
+        }
+
+        function endRuler(e) {
+            if (ruler.x1 === null) return;
+            const rect = canvas.getBoundingClientRect();
+            ruler.x2 = e.clientX - rect.left;
+            ruler.y2 = e.clientY - rect.top;
+            drawScene();
+        }
+    </script>
+</body>
+</html>
